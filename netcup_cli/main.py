@@ -32,6 +32,9 @@ class CLI:
             'vserver_information', 'vserver_ips', 'vservers'
         ], help="Resource to retrieve")
         get_parser.add_argument('--vserver_name', required=False, help="Name of the vServer")
+        get_parser.add_argument('--year', type=int, required=False, help="Year (required for traffic commands)")
+        get_parser.add_argument('--month', type=int, required=False, help="Month (required for monthly traffic)")
+        get_parser.add_argument('--day', type=int, required=False, help="Day (required for daily traffic)")
 
         # Set subcommand
         set_parser = subparsers.add_parser("set", help="Set a resource")
@@ -113,7 +116,30 @@ class CLI:
                 'vservers': netcup_ws.get_vservers
             }
 
-            if args.resource in resource_map:
+            if args.resource == 'vserver_traffic_of_day':
+                # Ensure year, month, and day are provided
+                if not (args.year and args.month and args.day):
+                    print("Please provide year, month, and day for daily traffic.")
+                    sys.exit(1)
+                result = netcup_ws.get_vserver_traffic_of_day(
+                    vserver_name=args.vserver_name,
+                    year=args.year,
+                    month=args.month,
+                    day=args.day
+                )
+            
+            elif args.resource == 'vserver_traffic_of_month':
+                # Ensure year and month are provided
+                if not (args.year and args.month):
+                    print("Please provide year and month for monthly traffic.")
+                    sys.exit(1)
+                result = netcup_ws.get_vserver_traffic_of_month(
+                    vserver_name=args.vserver_name,
+                    year=args.year,
+                    month=args.month
+                )
+            
+            else:
                 method = resource_map[args.resource]
                 if args.vserver_name:
                     result = method(vserver_name=args.vserver_name)
@@ -127,7 +153,8 @@ class CLI:
             elif args.resource == "password":
                 result = netcup_ws.change_user_password(new_password=args.new_password)
             elif args.resource == "panel_settings":
-                result = netcup_ws.set_panel_settings(panel_settings=args.panel_settings)
+                show_nickname = True if args.panel_settings.lower() == 'true' else False
+                result = netcup_ws.set_panel_settings(show_nickname=show_nickname)
             else:
                 result = f"Unknown resource: {args.resource}"
             print(result)
