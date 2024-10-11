@@ -1,6 +1,7 @@
 # Unofficial Netcup CLI
 
 [![netcup.com](https://www.netcup.com/uploads/netcup_set_C_728x90_b94e135b39.png)](https://www.mihnea.dev/netcup-vouchers)
+
 ^^ Click to support me AND redeem a netcup DISCOUNT VOUCHER on [www.mihnea.dev](https://www.mihnea.dev/)
 
 A simple CLI tool for interacting with the Netcup Webservice (based on [`netcup_webservice`](https://github.com/mihneamanolache/netcup-webservice))
