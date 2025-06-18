@@ -70,6 +70,19 @@ netcup-cli stop --vserver_name YOUR_VSERVER_NAME
 netcup-cli poweroff --vserver_name YOUR_VSERVER_NAME
 ```
 
+**Project Commands**
+You can organize vServers into projects stored locally in a SQLite database.
+```bash
+# Create a project
+netcup-cli project create myproject
+
+# Add all servers with a nickname matching 'web-' to the project
+netcup-cli project add --project myproject --nick '^web-'
+
+# List projects and assigned servers
+netcup-cli project list
+```
+
 ## Disclaimer
 This package is not affiliated with, endorsed, or sponsored by Netcup GmbH. It is an independent project and is maintained solely by its contributors.
 

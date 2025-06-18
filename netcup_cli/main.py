@@ -3,12 +3,22 @@ import sys
 import os
 import json
 import base64
+import re
 from getpass import getpass
 from netcup_webservice import NetcupWebservice
+from netcup_cli.project_manager import ProjectManager
 
 # Get the directory where the current script is located
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 CREDENTIALS_FILE = os.path.join(SCRIPT_DIR, "netcup_credentials.json")
+PROJECT_DB = os.path.join(SCRIPT_DIR, "projects.db")
+
+def print_progress(current, total, bar_length=50):
+    percent = float(current) / total
+    arrow = '-' * int(round(percent * bar_length) - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+    sys.stdout.write(f'\rProgress: [{arrow}{spaces}] {int(percent*100)}%')
+    sys.stdout.flush()
 
 class CLI:
     def __init__(self):
@@ -55,6 +65,27 @@ class CLI:
 
         poweroff_parser = subparsers.add_parser("poweroff", help="Power off a vServer")
         poweroff_parser.add_argument('--vserver_name', required=True, help="Name of the vServer to power off")
+
+        # Project management subcommands
+        project_parser = subparsers.add_parser("project", help="Manage projects")
+        project_sub = project_parser.add_subparsers(dest="project_command")
+
+        project_create = project_sub.add_parser("create", help="Create a project")
+        project_create.add_argument('name', help="Project name")
+
+        project_list = project_sub.add_parser("list", help="List projects")
+
+        project_add = project_sub.add_parser("add", help="Add servers to a project")
+        project_add.add_argument('--project', required=True, help="Project name")
+        group = project_add.add_mutually_exclusive_group(required=True)
+        group.add_argument('--vserver', help="Add vServer by name")
+        group.add_argument('--nick', '--nickname', dest='nickname',
+                           help="Regex to match nickname")
+        group.add_argument('--ip', help="Match IP address")
+
+        project_remove = project_sub.add_parser("remove", help="Remove a server from a project")
+        project_remove.add_argument('--project', required=True, help="Project name")
+        project_remove.add_argument('--vserver', required=True, help="vServer name")
 
     def save_credentials(self, loginname, password):
         encoded_loginname = base64.b64encode(loginname.encode()).decode()
@@ -171,6 +202,40 @@ class CLI:
             result = netcup_ws.poweroff_vserver(vserver_name=args.vserver_name)
             print(result)
 
+        elif args.command == "project":
+            pm = ProjectManager(PROJECT_DB)
+            if args.project_command == "create":
+                pm.create_project(args.name)
+                print(f"Project '{args.name}' created")
+            elif args.project_command == "list":
+                for project in pm.list_projects():
+                    servers = ", ".join(project["servers"]) if project["servers"] else ""
+                    print(f"{project['name']}: {servers}")
+            elif args.project_command == "add":
+                if args.vserver:
+                    pm.add_server(args.project, args.vserver)
+                    print(f"Added {args.vserver} to {args.project}")
+                else:
+                    servers = netcup_ws.get_vservers()
+                    matched = []
+                    total_servers = len(servers)
+                    print(f"Found {total_servers} servers")
+                    for i, srv in enumerate(servers, 1):
+                        info = netcup_ws.get_vserver_information(str(srv))
+                        if args.nickname and re.search(args.nickname, info['vServerNickname']):
+                            matched.append(info['vServerName'])
+                        elif args.ip and args.ip in info['ips']:
+                            matched.append(info['vServerName'])
+                        print_progress(i, total_servers)
+                    for srv in matched:
+                        pm.add_server(args.project, srv)
+                    print(f"Added {len(matched)} servers to {args.project}")
+            elif args.project_command == "remove":
+                pm.remove_server(args.project, args.vserver)
+                print(f"Removed {args.vserver} from {args.project}")
+            else:
+                print("Unknown project command")
+
         else:
             print(f"Unknown command: {args.command}")
             self.parser.print_help()
@@ -178,3 +243,7 @@ class CLI:
 def main():
     cli = CLI()
     cli.run()
+
+
+if __name__ == "__main__":
+    main()
