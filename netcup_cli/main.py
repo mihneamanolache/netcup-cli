@@ -72,7 +72,8 @@ class CLI:
         project_add.add_argument('--project', required=True, help="Project name")
         group = project_add.add_mutually_exclusive_group(required=True)
         group.add_argument('--vserver', help="Add vServer by name")
-        group.add_argument('--nickname', help="Regex to match nickname")
+        group.add_argument('--nick', '--nickname', dest='nickname',
+                           help="Regex to match nickname")
         group.add_argument('--ip', help="Match IP address")
 
         project_remove = project_sub.add_parser("remove", help="Remove a server from a project")

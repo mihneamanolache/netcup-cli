@@ -77,7 +77,7 @@ You can organize vServers into projects stored locally in a SQLite database.
 netcup-cli project create myproject
 
 # Add all servers with a nickname matching 'web-' to the project
-netcup-cli project add --project myproject --nickname '^web-'
+netcup-cli project add --project myproject --nick '^web-'
 
 # List projects and assigned servers
 netcup-cli project list
