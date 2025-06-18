@@ -13,6 +13,13 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 CREDENTIALS_FILE = os.path.join(SCRIPT_DIR, "netcup_credentials.json")
 PROJECT_DB = os.path.join(SCRIPT_DIR, "projects.db")
 
+def print_progress(current, total, bar_length=50):
+    percent = float(current) / total
+    arrow = '-' * int(round(percent * bar_length) - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+    sys.stdout.write(f'\rProgress: [{arrow}{spaces}] {int(percent*100)}%')
+    sys.stdout.flush()
+
 class CLI:
     def __init__(self):
         self.parser = argparse.ArgumentParser(
@@ -211,12 +218,15 @@ class CLI:
                 else:
                     servers = netcup_ws.get_vservers()
                     matched = []
-                    for srv in servers:
+                    total_servers = len(servers)
+                    print(f"Found {total_servers} servers")
+                    for i, srv in enumerate(servers, 1):
                         info = netcup_ws.get_vserver_information(str(srv))
-                        if args.nickname and re.search(args.nickname, info.get('vServerNickname', '')):
+                        if args.nickname and re.search(args.nickname, info['vServerNickname']):
                             matched.append(info['vServerName'])
-                        elif args.ip and args.ip in info.get('ips', []):
+                        elif args.ip and args.ip in info['ips']:
                             matched.append(info['vServerName'])
+                        print_progress(i, total_servers)
                     for srv in matched:
                         pm.add_server(args.project, srv)
                     print(f"Added {len(matched)} servers to {args.project}")
